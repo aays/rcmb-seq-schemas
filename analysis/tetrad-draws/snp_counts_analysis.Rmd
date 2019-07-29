@@ -1,0 +1,160 @@
+---
+title: "SNP count analysis"
+author: Ahmed Hasan
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(fs)
+library(here)
+
+din1 <- 6.34375
+din2 <- 3.385417
+```
+
+```{r}
+# 
+fnames_short <- dir_ls(here('data/tetrad-draws/snp-counts'), 
+                       regexp = 'r[0-9]+_i[0-9]{1,3}\\.tsv')
+fnames_long <- dir_ls(here('data/tetrad-draws/snp-counts'), 
+                      regexp = 'r[0-9]+_i[0-9]{4}\\.tsv')
+
+counts_short <- map(fnames_short, read_tsv, col_types = cols())
+names(counts_short) <- str_extract(fnames_short, 'r[0-9]+_i[0-9]{1,3}')
+counts_long <- map(fnames_long, read_tsv, col_types = cols())
+names(counts_long) <- str_extract(fnames_long, 'r[0-9]+_i[0-9]{4}')
+```
+
+```{r}
+# test dataset
+d <- counts_short[[1]]
+
+# how many informative reads? (at least 2 SNPs on each read)
+d %>% 
+  select(-chrom) %>% 
+  filter(left_count >= 2, right_count >= 2)
+
+# how many 'highly informative' reads? (at least 5 SNPs on each read)
+d %>% 
+  select(-chrom) %>% 
+  filter(left_count >= 5, right_count >= 5)
+
+# what are the distributions of SNP counts?
+d %>% 
+  select(ends_with('count')) %>% 
+  gather(type, count) %>% 
+  ggplot(aes(x = count)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ type)
+
+```
+
+Getting counts of SNPs/read across all combinations:
+
+```{r}
+read_count <- function(d, inform_thresh = 2, high_thresh = 5) {
+  max_reads <- nrow(d)
+  inform_reads <- d %>% 
+    filter(
+      left_count >= inform_thresh,
+      right_count >= inform_thresh) %>% 
+    nrow()
+  high_reads <- d %>% 
+    filter(
+      left_count >= high_thresh,
+      right_count >= high_thresh) %>% 
+    nrow()
+  dis_high_reads <- d %>% 
+    filter((left_count >= high_thresh & right_count < high_thresh) |
+             (left_count < high_thresh & right_count >= high_thresh)) %>% 
+    filter(left_count > 1, right_count > 1) %>% 
+    nrow()
+  
+  out <- data.frame(
+    read_length = unique(d$read_length),
+    insert_size = unique(d$insert_size),
+    max_reads = max_reads,
+    inform_reads = inform_reads,
+    high_reads = high_reads,
+    dis_high_reads = dis_high_reads,
+    inform_prop = inform_reads / max_reads,
+    high_prop = high_reads / max_reads,
+    dis_high_prop = dis_high_reads / max_reads
+  )
+  return(out)
+}
+```
+
+```{r}
+prop_short <- counts_short %>% 
+  map_dfr(~ read_count(.)) %>% 
+  arrange(-inform_prop)
+
+prop_long <- counts_long %>% 
+  map_dfr(~ read_count(.)) %>% 
+  arrange(-inform_prop)
+
+prop_all <- bind_rows(prop_short, prop_long)
+
+View(prop_all)
+```
+
+Plots:
+
+```{r}
+prop_theme <- theme(
+    axis.title = element_text(family = 'Helvetica', size = 14),
+    axis.text = element_text(family = 'Helvetica', size = 14, color = 'black'),
+    strip.text = element_text(family = 'Helvetica', size = 14, color = 'black')
+  )
+
+short_prop_plot <- prop_short %>% 
+  select(-ends_with('reads')) %>% 
+  gather(measure, value, -read_length, -insert_size) %>% 
+  ggplot(aes(x = insert_size, y = value, color = measure)) +
+  facet_wrap(~ read_length) +
+  coord_cartesian(y = c(0, 0.5)) +
+  geom_line() +
+  theme_bw() +
+  prop_theme
+
+long_prop_plot <- prop_long %>% 
+  select(-ends_with('reads')) %>% 
+  gather(measure, value, -read_length, -insert_size) %>% 
+  ggplot(aes(x = insert_size, y = value, color = measure)) +
+  facet_wrap(~ read_length) +
+  coord_cartesian(y = c(0, 0.5)) +
+  geom_line() +
+  theme_bw() +
+  prop_theme
+
+short_prop_plot
+
+long_prop_plot
+
+ggsave(here('plots', 'short_prop_plot.jpg'), plot = short_prop_plot,
+       width = din1 * 1.5, height = din1)
+ggsave(here('plots', 'long_prop_plot.jpg'), plot = long_prop_plot,
+       width = din1 * 1.5, height = din1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
