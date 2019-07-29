@@ -96,6 +96,58 @@ Filtering complete.
 next up - run different read pair schemes through this file
 to get upper bound of identifiable COs/NCOs
 
+## 28/7/2019
+
+today: read pair schemes to get upper bound of identifiable COs/NCOs
+
+script should take in:
+1. VCF (obv)
+2. read length L
+3. insert size b/w reads (I) (though technically 'insert size' includes reads...)
+4. chromosome
+
+from start of chromosome - 
+1. count SNPs in window of length L AND window at L + I (left and right pair) - use tabix for this
+2. move window forward by L/2 and repeat
+
+do this over L = {50, 100, 150, 250}
+and I = {50, 100, 150, 250, 2000, 3000, 4000, 5000} (short insert and mate pair)
+
+```bash
+mkdir -p data/tetrad-draws/snp-counts
+
+# test run
+time python3.5 analysis/tetrad-draws/read_snp_counts.py \
+--vcf data/tetrad-draws/vcfs/parental_filtered.vcf.gz \
+--read_length 150 \
+--insert_size 50 \
+--chrom chromosome_1 \
+--out test.out
+```
+
+looks great, and only took ~3 minutes - let's queue this up for all of
+the combinations above in parallel:
+
+```bash
+parallel -j 4 -i sh -c \
+'for insert_size in 50 100 150 250 2000 3000 4000 5000; do \
+time python3.5 analysis/tetrad-draws/read_snp_counts.py \
+--vcf data/tetrad-draws/vcfs/parental_filtered.vcf.gz \
+--read_length {} --insert_size ${insert_size} --chrom chromosome_1 \
+--out data/tetrad-draws/snp-counts/r{}_i${insert_size}.tsv; done' -- 50 100 150 250
+```
+
+once these are done, will need to calculate SNP density on reads,
+and assess how many pairs are 'callable' (ie at least two SNPs *per read*)
+and how many are 'highly informative' (kind of arbitrary - say five SNPs per read?)
+
+after that: creating a VCF with all the Liu samples and randomly drawing 'mate pairs'
+using the best schema above to see how many are genuinely callable
+
+update: longest took 10 min - genomewide run should take
+about 1.5 hours
+
+
 
 
 
