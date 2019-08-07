@@ -147,6 +147,14 @@ using the best schema above to see how many are genuinely callable
 update: longest took 10 min - genomewide run should take
 about 1.5 hours
 
+## 7/8/2019
+
+to do:
+- redo SNP density counts with more permissive parameters (ie at least 2 SNPs total)
+- write script that detects COs and NCOs assuming all sites are callable
+    - also simulate data where this is the case?
+    - could also use AT or 12 system to designate parental haps - probably easier
+
 
 
 
