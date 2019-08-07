@@ -28,12 +28,13 @@ names(counts_long) <- str_extract(fnames_long, 'r[0-9]+_i[0-9]{4}')
 
 ```{r}
 # test dataset
-d <- counts_short[[1]]
+d <- counts_short[[1]] %>% 
+  mutate(total_count = left_count + right_count)
 
 # how many informative reads? (at least 2 SNPs on each read)
 d %>% 
   select(-chrom) %>% 
-  filter(left_count >= 2, right_count >= 2)
+  filter(total_count >= 2)
 
 # how many 'highly informative' reads? (at least 5 SNPs on each read)
 d %>% 
@@ -55,10 +56,13 @@ Getting counts of SNPs/read across all combinations:
 ```{r}
 read_count <- function(d, inform_thresh = 2, high_thresh = 5) {
   max_reads <- nrow(d)
+  if (!'total_count' %in% colnames(d)) {
+    d <- d %>% 
+      mutate(total_count = left_count + right_count)
+  }
   inform_reads <- d %>% 
     filter(
-      left_count >= inform_thresh,
-      right_count >= inform_thresh) %>% 
+      total_count >= inform_thresh) %>% 
     nrow()
   high_reads <- d %>% 
     filter(
@@ -114,7 +118,7 @@ short_prop_plot <- prop_short %>%
   gather(measure, value, -read_length, -insert_size) %>% 
   ggplot(aes(x = insert_size, y = value, color = measure)) +
   facet_wrap(~ read_length) +
-  coord_cartesian(y = c(0, 0.5)) +
+  coord_cartesian(y = c(0, 0.8)) +
   geom_line() +
   theme_bw() +
   prop_theme
@@ -124,7 +128,7 @@ long_prop_plot <- prop_long %>%
   gather(measure, value, -read_length, -insert_size) %>% 
   ggplot(aes(x = insert_size, y = value, color = measure)) +
   facet_wrap(~ read_length) +
-  coord_cartesian(y = c(0, 0.5)) +
+  coord_cartesian(y = c(0, 0.8)) +
   geom_line() +
   theme_bw() +
   prop_theme
