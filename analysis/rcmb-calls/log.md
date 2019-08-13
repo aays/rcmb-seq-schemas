@@ -54,5 +54,25 @@ at start - create four 'offspring' - assign 2 to parent 1 (A) and
 - if NCO-GC
     - draw one offspring and temporarily switch phase for _n_ bases
 
+## 13/8/2019
 
+that was a tricky script to make - here goes nothing:
 
+`events.txt`:
+
+```
+event position length
+CO 2000 0
+NCO 5000 100
+NCO 7000 50
+CO-GC 8000 50
+```
+
+running the script:
+
+```bash
+time python3.5 analysis/rcmb-calls/recombine_all_callable.py \
+--fname data/rcmb-calls/events.txt \
+--length 10000 \
+--out data/rcmb-calls/all_callable.fasta
+```

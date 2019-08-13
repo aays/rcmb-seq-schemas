@@ -29,7 +29,7 @@ def args():
     parser.add_argument('-f', '--fname', required=True,
                         type=str, help='File containing recombination events')
     parser.add_argument('-l', '--length', required=True,
-                        type=str, help='Length of parental haps')
+                        type=int, help='Length of parental haps')
     parser.add_argument('-o', '--out', required=True,
                         type=str, help='File to write to')
 
@@ -48,6 +48,7 @@ def parse_events(fname: str) -> dict:
         for line in f:
             if not line.startswith('event'):
                 event, position, length_bp = line.split(' ')
+                position, length_bp = int(position), int(length_bp)
                 events[position] = [event, length_bp]
     return events
 
@@ -124,7 +125,7 @@ def write_recombinants(phase_changes: dict, length: int, out: str):
     '''
     change_positions = sorted(phase_changes.keys())
     with open(out, 'w') as f:
-        for hap in tqdm(range(3)):
+        for hap in tqdm(range(4)):
             f.write('>{hap}'.format(hap=hap) + '\n')
             sequence = ''
             for i in range(len(change_positions) - 1):
@@ -144,7 +145,7 @@ def main():
     print('Determining phase changes...')
     phase_changes = recombine(input_events)
     print('Creating sequences and writing to file...')
-    write_recombinants(phase_changes)
+    write_recombinants(phase_changes, length, out)
     print('Done.')
     print('Good job!')
 
