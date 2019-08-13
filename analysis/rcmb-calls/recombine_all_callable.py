@@ -69,7 +69,7 @@ def draw_from_hap(hap_in: np.ndarray, event: str):
         hap[switch1] = 'T'
         hap[switch2] = 'A'
         return hap
-    elif event == 'NCO': # this is wrong - manually check it
+    elif event == 'NCO':
         hap2 = deepcopy(hap)
         to_switch = random.choice([0,1,2,3])
         if hap[to_switch] == 'A':
